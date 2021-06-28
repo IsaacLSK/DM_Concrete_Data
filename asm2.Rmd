@@ -1,0 +1,534 @@
+---
+title: "STAT S460F: Assignment 02"
+author: "Siu Kwok Lai 12354991"
+date: "2020/12/15"
+output: pdf_document
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+# List of packages
+```{r packages, eval=FALSE}
+install.packages("ISLR")
+install.packages("ggplot2")
+install.packages("epiDisplay")
+install.packages("factoextra")
+install.packages("ROCR")
+install.packages("leaps") 
+install.packages("PerformanceAnalytics")
+install.packages("dplyr")
+install.packages("glmnet")
+install.packages("pls")    
+install.packages("e1071")
+```
+
+# Library used
+```{r acces lib}
+library(ISLR) #### Data Mining Package
+library(ggplot2) ### For graphs
+library(epiDisplay) #### One way Analysis
+library(factoextra)
+library(ROCR) ###
+library(leaps) ### for predict
+library(PerformanceAnalytics) #### for correlation
+library(dplyr)
+library(glmnet) ### To perform ridge regression
+library(pls)
+library(e1071) #### SVM
+```
+
+# Question 1 
+
+## Data Fetching
+```{r fetching}
+mydata = data.frame(read.csv("C:\\Users\\user\\Desktop\\R tutorial\\Concrete_Data.csv"))
+```
+
+## Data Manipulation
+```{r Mani}
+head(mydata)
+
+## rename the variables
+names(mydata)[2:3] = c("BlastFurnaceSlag", "FlyAsh")
+
+head(mydata)
+str(mydata) ## all numerical data
+dim(mydata) ## 1030 rows and 9 cols
+sum(is.na(mydata)) ## count if missing, and no missing data existing
+
+
+```
+
+## Split two non-overlapped equal subgroups
+```{r split mydata}
+set.seed (1) 
+number = c(sample(1:nrow(mydata) ,nrow(mydata)))
+any(duplicated(number))
+
+training_data = mydata[number[1:515],]
+dim(training_data)
+
+testing_data = mydata[number[516:1030],]
+dim(testing_data)
+
+```
+
+## variables preparation
+```{r varpre}
+Strength = mydata$Strength
+Cement = mydata$Cement 
+BlastFurnaceSlag = mydata$BlastFurnaceSlag 
+FlyAsh = mydata$FlyAsh
+Water = mydata$Water 
+Superplasticizer = mydata$Superplasticizer
+Coarse = mydata$Coarse
+Fine = mydata$Fine
+Age = mydata$Age
+
+```
+
+
+## Question 1, i) Descriptive and exploratory analysis of each variable 
+```{r Descriptive1}
+summary(Strength);hist(Strength,main="Histogram of Strength")
+```
+Strength is the explained variable in the case. For the histogram of it, we can see the shape like a bell shape and both of the two sides are taily, but not exactly, so it close to normal distribution.
+
+```{r Descriptive2}
+summary(Cement);hist(Cement, main="Histogram of Cement")
+```
+For the histogram of explanatory variable cement, we can see that the data is mainly concentrated in the range of 150-350, and then tilted to the right.
+
+```{r Descriptive3}
+summary(BlastFurnaceSlag);hist(BlastFurnaceSlag,main="Histogram of BlastFurnaceSlag")
+```
+For the histogram of explanatory variable BlastFurnaceSlag, we can see that the data is mainly concentrated in the range of 0-50, which is quite not balanced.
+
+```{r Descriptive4}
+summary(FlyAsh);hist(FlyAsh,main="Histogram of FlyAsh")
+```
+For the histogram of explanatory variable FlyAsh, we can see that most of the data is concentrated in the range of 0-50, which is quite not balanced.
+
+```{r Descriptive5}
+summary(Water);hist(Water,main="Histogram of Water")
+```
+For the histogram of the explanatory variable Water, we can see that the data is skewed to increase on the right, and then suddenly dropped sharply.
+
+```{r Descriptive6}
+summary(Superplasticizer);hist(Superplasticizer,main="Histogram of Superplasticizer")
+```
+For the histogram of the explanatory variable Superplasticizer, we can see that the data is mainly concentrated in the range of 0-3, and littles concentrated in the range 4-12, which is quite not balanced.
+
+```{r Descriptive7}
+summary(Coarse);hist(Coarse,main="Histogram of Coarse")
+```
+For the histogram of the explanatory variable Coarse, the data is an increase from the left, then skewed to decrease on the right from 900, likely normal distrubution.
+
+```{r Descriptive8}
+summary(Fine);hist(Fine,main="Histogram of Fine")
+```
+For the histogram of the explanatory variable Fine, the data is an increase from the left, then skewed to decrease on the right from 800, likely normal distrubution.
+
+```{r Descriptive9}
+summary(Age);hist(Age,main="Histogram of Age")
+```
+For the histogram of explanatory variable Age, we can see that most of the data is concentrated in the range of 0-50, which is quite not balanced.
+
+
+## Question 1, ii) Correlation plots between explained and explanatory variables
+
+
+```{r corrplot}
+my_data = mydata[, c(1:9)]
+chart.Correlation(my_data, histogram=TRUE, pch=19)
+```
+The above plot has described the correlations between the explained variable Strength and explanatory variables. The correlations plot and its correlation coefficients of the explained variable and explanatory variable respectively have displayed at the bottom row and the rightmost column with ordering.
+
+Regarding to the explained variable Strength and explanatory variable Cement, we can see the pattern, when Sthength increase then Cement also increase, and the reference-line is from bottom left to top right straightly, it means that there is a positive relationship. Besides, we can see most of the data points are not close to the regression line, and the correlation coefficient value is 0.50 which means the correlation between Cement and Strength is positive but weak.
+
+Regarding to the explained variable Strength and explanatory variable BlastFurnaceSlag, we can not see any pattern from the data point, but the reference-line is slightly like an increasing trend, it means that there is a positive relationship. Besides, the correlation coefficient value is only 0.13 which means the correlation between Cement and Strength is positive but very weak.
+
+Regarding to the explained variable Strength and explanatory variable FlyAsh, we can not see any pattern from the data point and the reference-line is slightly from top left to bottom right, it means that there is a negative relationship, Besides, the correlation coefficient value is -0.11 which means the correlation between FlyAsh and Strength is negative and almost no correlation.
+
+Regarding to the explained variable Strength and explanatory variable Water, we can see the pattern from the data point and the reference-line is decreasing, it means there is a negative relationship. Besides, we can see the correlation coefficient value is -0.29 which means the correlation between Water and Strength is negative and almost no correlation.
+
+Regarding to the explained variable Strength and explanatory variable Superplasticizer, we can see the pattern from the data point follows the reference-line and increasing from left to right, it means that there is a positive relationship. Besides, the correlation coefficient value is 0.37 which means the correlation between Superplasticizer and Strength is positive but weak.
+
+Regarding to the explained variable Strength and explanatory variable Coarse, we can not see any pattern from the data point and the reference-line is slightly decreasing from left to right, it means that there is a negative relationship. Besides, the correlation coefficient value is -0.16 which means the correlation between Coarse and Strength is negative and almost no correlation.
+
+Regarding to the explained variable Strength and explanatory variable Fine, we can not see any pattern from the data point and the reference-line is slightly decreasing from the left to right, it means that there is a negative relationship. Besides, the correlation coefficient value is -0.17 which means the correlation between Fine and Strength is negative and almost no correlation.
+
+Regarding to the explained variable Strength and explanatory variable Age, we can not see any pattern from the data point, but the reference-line is slightly increasing from left to right, it means that there is a positive relationship. Besides, the correlation coefficient value is 0.33 which means the correlation between Age and Strength is positive but weak.
+
+
+## Question 1, iii)  Fit the best subset regression
+
+Before fitting the best subset regression using Forward Selection and Backward Elimination techniques, we need to get the best value for mvmax as it deciding the number of required explanatory variables. In other to get it, we can simply by using the technique as below:
+
+### 10-fold cross-validation
+
+The following is used 10-fold cross-validation with predict() method for regsubsets().
+
+```{r pre2}
+predict.regsubsets=function(object , newdata ,id ,...){
+form=as.formula (object$call [[2]])
+mat=model.matrix(form ,newdata )
+coefi=coef(object ,id=id)
+xvars=names(coefi)
+mat[,xvars]%*%coefi
+}
+
+regfit.best=regsubsets(Strength~.,data=training_data,nvmax=8)
+coef(regfit.best ,8)
+
+k=10
+set.seed(1)
+folds=sample (1:k,nrow(training_data),replace=TRUE)
+cv.errors=matrix(NA,k,8, dimnames=list(NULL,paste(1:8)))
+
+for(j in 1:k){
+best.fit=regsubsets(Strength~.,data=training_data[folds!=j,],nvmax=8)
+for(i in 1:8){
+pred=predict (best.fit ,training_data [folds ==j,],id=i)
+cv.errors[j,i]= mean( ( training_data$Strength[ folds==j]-pred)^2)
+}
+}
+
+mean.cv.errors=apply(cv.errors ,2, mean)
+mean.cv.errors
+which.min(mean.cv.errors)
+
+par(mfrow=c(1,1))
+plot(mean.cv.errors ,type='b')
+
+reg.best=regsubsets (Strength~.,data=training_data, nvmax=8)
+coef(reg.best ,5)
+```
+After using 10-fold cross-validation on training dataset, the result value is equal to 5 and this is not equal to the total number of explanatory variables, So this is the best value. We can use the best value on nvmax into forward selection and backward selection as the best five-variables models.
+
+### a) using Forward Selection Elimination
+
+```{r forward}
+regfit.fwd=regsubsets(training_data$Strength~., data=training_data, nvmax=8, method ="forward")
+
+summary(regfit.fwd)
+coef(regfit.fwd ,5)
+summary(regfit.fwd)$rsq[5]
+summary(regfit.fwd)$adjr2[5]
+summary(regfit.fwd)$cp[5]
+summary(regfit.fwd)$bic[5]
+
+par(mfrow=c(1,4),mar=c(0,0,0,0))
+plot(regfit.fwd ,scale="r2")
+plot(regfit.fwd ,scale="adjr2")
+plot(regfit.fwd ,scale="Cp")
+plot(regfit.fwd ,scale="bic")
+
+```
+In forward selection, 4 types of conditions are used. All of the results indicate the best five-variables model contains Cement, BlastFurnaceSlag, Water, Superplasticizer, Age.
+Besides, the values of R^2, adjR^2, Cp BIC respectively are 0.5948503, 0.5908705, 55.24953, -427.8369.
+
+
+### b) using Backward Selection Elimination
+```{r backward}
+regfit.bwd=regsubsets(Strength~., data=training_data, nvmax=8, method ="backward")
+
+summary(regfit.bwd)
+coef(regfit.bwd, 5)
+summary(regfit.bwd)$rsq[5]
+summary(regfit.bwd)$adjr2[5]
+summary(regfit.bwd)$cp[5]
+summary(regfit.bwd)$bic[5]
+
+par(mfrow=c(1,4),mar=c(0,0,0,0))
+plot(regfit.bwd ,scale="r2")
+plot(regfit.bwd ,scale="adjr2")
+plot(regfit.bwd ,scale="Cp")
+plot(regfit.bwd ,scale="bic")
+
+par(mfrow=c(1,1))
+```
+In backward selection, 4 types of conditions are used. All of the results indicate the best five-variables model contains Cement, BlastFurnaceSlag, FlyAsh, Water, Age. 
+Besides, the values of R^2, adjR^2, Cp BIC respectively are 0.6312992, 0.6276774, 5.027222, -476.3864.
+
+
+In the conclusion, the10 fold cross-validation indicated five-variables model should be the best subset regression in both forward selection and backward selection. Based on the asterisks from summary(), it reflected the level of best about variables. In the best one-variable model, both of the selection techniques are same.  But start from the two-variables model, they becomes different.
+
+In forward selection, the ordering is Cement, Superplasticizer, Age, BlastFurnaceSlag, Water. Then, FlyAsh, Coarse, Fine will be discarded.
+
+In backward selection, the ordering is Cement, Age, Water, BlastFurnaceSlag, FlyAsh.  Then,  Superplasticizer, Coarse, Fine will be discarded.
+
+
+Finally, since the values of R^2, adjR^2, Cp BIC from forward selection is better,  forward selection will be performed.
+
+
+## Question 1, iv)  Fit the best-fitted Ridge regression
+
+### Preparation
+```{r preFOrridgeAndLasso}
+grid = 10^seq(10, -2, length=100)
+
+set.seed(1)
+
+x_train = model.matrix(training_data$Strength~.,training_data)[,-1]
+x_test = model.matrix(testing_data$Strength~., testing_data)[,-1]
+
+y_train = training_data %>%
+  select(Strength) %>%
+  unlist() %>%
+  as.numeric()
+
+y_test = testing_data %>%
+  select(Strength) %>%
+  unlist() %>%
+  as.numeric()  
+
+```
+The above converting the splitted training and testing dataset from full dataset for Ridge and Lasso regression use.
+
+### original ridge regression regression
+
+```{r ridge org}
+ridge_mod = glmnet(x_train, y_train, alpha=0, lambda = grid)
+ridge_pred = predict(ridge_mod, s=4, newx = x_test)
+
+mean((ridge_pred - y_test)^2)
+plot(ridge_mod)
+```
+For the original model, the MSE is 117.5134 and we can see there is no intersection from the plot.
+
+### Cross validation
+```{r Cross validation}
+set.seed(1)
+cv.out = cv.glmnet(x_train, y_train, alpha = 0)
+bestlam=cv.out$lambda.min
+bestlam
+plot(cv.out)
+```
+The process using cross validation to find the minimum lambda as the best which is 0.8615487.
+
+
+### Final Ridge Model with best lambda with testing dataset
+```{r Final Ridge Model}
+ridge_mod=glmnet(x_train, y_train, alpha = 0, lambda = bestlam)
+ridge_mod
+summary(ridge_mod)
+
+coef(ridge_mod)
+ridge_pred = predict(ridge_mod, s = bestlam, newx = x_test)
+mean((ridge_pred - y_test)^2) 
+```
+The above is the final ridge model with best lambda. The MSE is 112.2048 which smaller than the one from original model. And the coefficients are no any exactly zero which does not perform variable selection.
+
+
+
+## Question 1, v)  Fit the best-fitted Lasso regression
+
+### Original lasso regression model
+```{r Lasso}
+lasso_mod = glmnet(x_train, y_train, alpha=1, lambda = grid)
+lasso_pred = predict(lasso_mod, s=4, newx = x_test)
+
+mean((lasso_pred - y_test)^2)
+plot(lasso_mod)
+
+```
+For the original model, the MES is 186.8248. And we can see there is no intersection from the plot.
+
+
+### Cross Vaildation
+```{r cv1}
+set.seed(1)
+cv.out = cv.glmnet(x_train, y_train, alpha=1)
+bestlam = cv.out$lambda.min
+bestlam
+plot(cv.out)
+```
+The process using cross validation to find the minimum lambda as the best which is 0.1193147.
+
+### Final Lasso Model with best lambda
+```{r Final Lasso Model}
+lasso_mod=glmnet(x_train, y_train, alpha = 1, lambda = bestlam)
+lasso_mod
+summary(lasso_mod)
+coef(lasso_mod)
+lasso_pred = predict(lasso_mod, s = bestlam, newx = x_test)
+mean((lasso_pred - y_test)^2) # MSE
+
+```
+The above is the final lasso model with best lambda. The MSE is 111.0691 which is decreased drastically, and it smaller than the original one. Besides, we can found that there are two variables is null in the coefficients, because these two are exactly zero which perform variable selection.
+
+
+### Compare with the results of Ridge and Lasso regressions
+Compare with the results of Ridge and Lasso regressions, the value of best lambda from Ridge regression is bigger than Lasso regression. But the MSE from Lasso regression has dropped obviously than Ridge regression. Moreover, the coefficients from the part at final Lasso Model, there is a situation where two variables are exactly zero, it performs variable selection.
+
+
+## Question 1, vi) Fit the best principal component regression model
+
+### Preparation
+```{r Preparation For PCR}
+
+x_train = model.matrix(training_data$Strength~.,training_data)[,-1]
+x_test = model.matrix(testing_data$Strength~., testing_data)[,-1]
+
+y_train = training_data %>%
+  select(Strength) %>%
+  unlist() %>%
+  as.numeric()
+
+y_test = testing_data %>%
+  select(Strength) %>%
+  unlist() %>%
+  as.numeric()  
+
+```
+The above converting the splitted training and testing dataset from full dataset for PCR use.
+
+### 10 fold corss-validation to find the best component, MSE, Coeffients
+```{r pcr}
+set.seed(1)
+pcr_fit = pcr(Strength~., data = training_data, scale = TRUE, validation = "CV")
+summary(pcr_fit)
+which.min(summary(pcr_fit))
+validationplot(pcr_fit, val.type = "MSEP")
+plot(pcr_fit, "loadings", ncomps =7) 
+plot(pcr_fit, "coef", ncomp = 7) # Coefficients
+
+pcr_pred = predict(pcr_fit, x_test, ncomp=7)
+mean((pcr_pred-y_test)^2)
+coef(pcr_fit,7)
+```
+After the procedures, the 10 fold cross-validation provided that component 7 can be explained about 99.62% of the variation which is over 99%. Thus component 7 will be used. Besides, the MSE is 116.2877. In addition, there is no coefficient exactly zero which means the PCR model with component 7 is available.
+
+Based on the requirement from engineer, we can choose component 7 or 8 because both of them can be explained over 99% of the variation. Actually, after 10 fold cross-validation, the minimum error should be component 8. But component 7 is closer to 99% then component 7 should be selected. However, the errors from component 7 or 8 are very close only differ 0.12 and component 8 can be explained 100% of the variation. Therefore, although using PCR can be reduced the dimension of variables, the result indicated there is no big difference between component 7 and 8. Then the total number of variables is 8 which means PCR is not very useful in this case.
+
+
+
+## Question 1, vii) Fite the best partial lest squares regression model
+
+### 10 fold cross-validation to find the best component, MSE, Coeffients
+```{r PLS}
+set.seed(1)
+pls_fit = plsr(Strength~., data = training_data, scale = TRUE, validation = "CV")
+summary(pls_fit) 
+validationplot(pls_fit, val.type = "MSEP")
+pls_pred = predict(pls_fit, x_test, ncomp = 4)
+mean((pls_pred - y_test)^2) # MSE
+coef(pls_fit, 4)
+```
+According to the requirement from engineer, the explained variable have to be explained 58% of the variation.  After the 10 fold cross-validation, component 4 explained 57.88% of variation with 10.68 validation error and component 5 explained 69.80% of variation with 10.64 validation error. Normally, component 4 is very close to the requirement then it can be the choice. The MSE of component 4 is 114.7947 and the values of coefficients are available.
+
+However, the performance of component 5 is better, it explained more variation and the error also be smaller, we may test it with testing dataset.
+
+### fit the best component 5 on testing dataset
+```{r }
+pls_fit_test = plsr(Strength~., data = testing_data, scale = TRUE, ncomp = 5)
+summary(pls_fit_test) 
+```
+After fitting the best component 5 on testing dataset, noticed that component 4 explained 63.68% of variation which is proofed component 4 is enough for requirement.
+
+# Qusetion 2 
+
+## Make a new dataset
+```{r new_dataset}
+new_dataset = mydata[,c(9,1)]
+Streng = new_dataset[1]
+
+Categories = c()
+for (i in seq(1, nrow(Streng), by=1)){
+  streng = round(Streng[i,])
+  if ( 0 <= streng & streng <= 35){
+    Categories[i] = "Weak"
+  } else if ( 36 <= streng & streng <= 47){
+    Categories[i] = "Medium"
+  } else if ( 48 <= streng & streng <= 83){
+    Categories[i] = "Strong"
+  }
+}
+
+new_dataset = cbind(new_dataset, Categories)
+
+Strength = new_dataset$Strength
+Cement = new_dataset$Cement
+```
+
+## Plot the complete dataset
+```{r plot new dataset}
+ggplot(data.frame(new_dataset), aes(Cement, Strength, colour = Categories)) +
+geom_point()
+```
+From the graph, we can see the data is non-linear as the data from each Categories not likely a straight line.
+
+## Split the new dataset
+```{r split the new dataset}
+head(new_dataset)
+str(new_dataset)
+dim(new_dataset) 
+sum(is.na(new_dataset)) ## count if missing, and no missing data existing
+
+set.seed (1) 
+number = c(sample(1:nrow(new_dataset) ,nrow(new_dataset)))
+any(duplicated(number))
+
+training_data = new_dataset[number[1:515],]
+dim(training_data)
+str(training_data)
+testing_data = new_dataset[number[516:1030],]
+dim(testing_data)
+
+training_class = training_data$Categories
+training_data = training_data[,1:2]
+training_data = data.frame(training_data, Categories = as.factor(training_class))
+
+testing_class = testing_data$Categories
+testing_data = testing_data[,1:2]
+testing_data = data.frame(testing_data, Categories = as.factor(testing_class))
+
+```
+The above spitted the data into two equal parts as the training and testing dataset, the number of observations are totally equivalent.
+
+## Implement the support vector machine
+
+Since the dataset is non-linear, we can fit an SVM using a non-linear kernel. We can perform a 10-folds cross-validation with tune() to select the best choice of and cost for an SVM with a radial kernel.
+
+### 10-folds cross-validation to find best cost and gamma
+```{r ten}
+
+Categories = training_data$Categories
+set.seed(1)
+tune_out=tune(svm,
+              Categories~.,
+              data=training_data,
+              kernel="radial",
+              ranges = 
+                list(cost = c(0.1,1,10,100,1000),
+                     gamma = c(0.5,1,2,3,4,5,6,7,8,9,10)))
+              
+
+bestmod=tune_out$best.model
+summary(bestmod)
+plot(bestmod,training_data)
+
+```
+After the 10-folds cross-validation which found the best cost is equal to 1000 and the best gamma is equal to 3.
+
+### Best values on testing dataset
+```{r SVM}
+svmfit = svm(testing_data$Categories~., data = testing_data, kernel = "radial", cost = 1000, gamma = 3)
+plot(svmfit, testing_data)
+```
+After putting the best values of cost and gamma on testing dataset, it indicates that SVM has a decidedly non-linear boundary from the graph.
+
+### The percentage of accuracy
+```{r final}
+table(true = testing_data$Categories, pred = predict(tune_out$best.model, newdata = testing_data))
+
+```
+For the confusion matrices, we have about 98% of test observations are correctly classified by this SVM, and about 2% is classified error.
+
+
